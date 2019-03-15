@@ -1,0 +1,22 @@
+doctype html
+html
+	head
+		title i use arch btw
+	body
+		-if @current_user
+			.logout
+				= @current_user.first_name
+				form action='/logout' method='post'
+					button type='submit' Log Out
+            - if @current_user.admin
+                form action='/database/clear' method='post'
+                    button type='submit' Clear Database
+		-else
+			.login
+				form action='/login' method='post'
+					input type='text' name='email' placeholder='email'
+					input type='password' name='password' placeholder='password'
+					button type='submit' Log in
+            .register
+                a href="/register" Register
+		== yield

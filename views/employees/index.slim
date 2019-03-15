@@ -1,0 +1,12 @@
+header
+	h1= @name.upcase
+main
+	-for user in @employees
+		article.user-card
+			.profile-img
+				img alt=user.name src="/img/#{user.image}.jpg"
+			.info
+				label.name= user.name
+				label.email= user.email
+				label.tel= user.tel
+				label.department= user.department

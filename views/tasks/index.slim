@@ -1,0 +1,25 @@
+form action='/tasks/new' method='post'
+    input type='text' name='name'
+    input type='date' name='date_due'
+    button type='submit' Add Task
+
+
+- if @tasks
+    - for task in @tasks
+        .task
+            h3 = task.name
+            h3 = "Due: #{task.date_due}"
+        
+            h3 = (task.completed ? "completed" : "not completed")
+        
+            - if task.adding_user_id == @current_user.id
+                - if !task.completed
+                form action="/tasks/#{task.id}/complete" method='post'
+                    button type='submit' Complete Task
+                form action="/tasks/#{task.id}/remove" method='post'
+                    button type='submit' Remove Task
+                form action="tasks/#{task.id}/invite" method='post'
+                    input type="text" name="email" placeholder='email'
+                    button type='submit' Invite User
+            br
+            br
