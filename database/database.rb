@@ -1,5 +1,6 @@
 require 'sqlite3'
 require 'pp'
+require 'bcrypt'
 class Database
     @@db ||= SQLite3::Database.new('./database/user_data.db') 
     @@db.results_as_hash = true
@@ -32,14 +33,19 @@ class Database
                         completed INTEGER NOT NULL,
                         adding_user_id INTEGER NOT NULL, 
                         date_due VARCHAR(255) NOT NULL)')
-        execute('DROP TABLE IF EXISTS tasks_rel')
-        execute('CREATE TABLE tasks_rel
-                        (user_id INTEGER,
-                        task_id INTEGER,
-                        FOREIGN KEY(user_id)
+        execute('DROP TABLE IF EXISTS tasking')
+        execute('CREATE TABLE tasking
+                        (users_id INTEGER,
+                        tasks_id INTEGER,
+                        FOREIGN KEY(users_id)
                         REFERENCES users(id),
-                        FOREIGN KEY(task_id)
+                        FOREIGN KEY(tasks_id)
                         REFERENCES tasks(id))')
+    end
+
+    def self.populate()
+        password = BCrypt::Password.create("user1p")
+        execute('INSERT INTO users (first_name, last_name, email, password) VALUES (?, ?, ?, ?)', ['user1f', 'user1l', 'user1@gmail.com', password])
     end
 end
 

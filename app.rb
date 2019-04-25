@@ -1,22 +1,31 @@
 require 'byebug'
 require 'sinatra'
-require_relative 'models/employee'
 require_relative 'database/database'
 require_relative 'models/user'
 
 class App < Sinatra::Base
 
 	enable :sessions
+    register Sinatra::Flash
     
     before do
+        @no_re_paths = ['/', '/register', '/login']
         if session[:user_id]
-            @current_user = User.get('id', session[:user_id])
+            @current_user = User.new(User.get({:id => session[:user_id]}))
+        elsif !session[:user_id] && !@no_re_paths.include?(request.path_info)
+            redirect '/'
         end
     end
 
 	post '/login' do
-        session[:user_id] = User.login(params)
-		redirect '/tasks'
+        result = User.login(params)
+        if result.class == Array
+            flash[session['session_id']] = result
+            redirect back
+        else
+            session[:user_id] = result
+		    redirect '/tasks'
+        end
 	end
 
 	post '/logout' do
@@ -29,18 +38,22 @@ class App < Sinatra::Base
     end
 
     post '/register' do
-        begin
-            @current_user = User.create(params)
+        result = User.register(params)
+        if result.class == User
+            @current_user = result
             session[:user_id] = @current_user.id
-        rescue 
+            redirect '/tasks'
+        else
+            flash[session['session_id']] = result
             redirect back
         end
-        redirect '/'
     end
 
     post '/tasks/new' do
-        if @current_user.id == session[:user_id]
-            @current_user.add_task(params)
+        if session[:user_id] == @current_user.id
+            id_hash = {'user_id': @current_user.id}
+            hash = params.merge(id_hash)
+            Task.add(hash)
         end
         redirect back
     end
@@ -54,9 +67,6 @@ class App < Sinatra::Base
     end
 
     get '/tasks' do
-        if !session[:user_id]
-            redirect '/'
-        end
         @tasks = @current_user.get_tasks()
         slim :'tasks/index'
     end
@@ -70,7 +80,7 @@ class App < Sinatra::Base
 
     post '/tasks/:id/remove' do
         if session[:user_id] == @current_user.id
-            Task.remove(params[:id])
+            Task.delete(params[:id])
         end
         redirect back
     end
@@ -87,7 +97,6 @@ class App < Sinatra::Base
             Database.clear()
         end
     end
-
 end
 
   

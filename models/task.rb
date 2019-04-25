@@ -1,10 +1,17 @@
 require_relative '../database/database.rb'
+require_relative 'tasking'
 
 
 
-class Task
-    attr_reader :id, :name, :completed, :adding_user_id, :date_due
+class Task < Table
+    tablename 'tasks'
+    column :name
+    column :completed
+    column :adding_user_id
+    column :date_due
+    column :id
     def initialize(db_hash) 
+        db_hash = db_hash
         @id             = db_hash['id']
         @name           = db_hash['name']
         @date_due       = db_hash['date_due']
@@ -16,30 +23,36 @@ class Task
     end
 
     def self.get_all_by_id(user_id)
-        tasks = Database.execute('SELECT task_id FROM tasks_rel i
-                                   WHERE user_id = ?', user_id)
-        task_objs = []
-        tasks.each do |task|
-            hash = Database.execute('SELECT * FROM tasks WHERE id = ?', task['task_id']).first
-
-            task_objs << Task.new(hash)
+        task_hashes = get({users_id: user_id}) { {join: "users", through: "tasking"} }
+        task_hashes.each do |task|
+            task_objs << new(task)
         end
         return task_objs
     end
 
-    def self.remove(id)
-        Database.execute('DELETE FROM tasks WHERE id = ?', id)
-        Database.execute('DELETE FROM tasks_rel WHERE task_id = ?', id)
+    def self.delete(id)
+        remove id: id
+        Tasking.remove tasks_id: id
     end
 
     def self.complete(id) 
-        Database.execute('UPDATE tasks SET completed = 1 WHERE id = ?', id)
+        update({id: id}, {completed: 1})
     end
 
     def self.invite(params)
         begin
-            user_id = Database.execute('SELECT id FROM users WHERE email = ?', params['email']).first.values[0]
-            Database.execute('INSERT INTO tasks_rel (user_id, task_id) VALUES(?, ?)', [user_id, params['id']])
+            user = User.new(User.get email: params['email'])
+            Tasking.create({users_id: user.id, tasks_id: params['id']})
         end
+    end
+
+    def self.add(hash)
+        p latest(:id)
+        task_hash = {name: hash['name'], completed: 0, 
+        adding_user_id: hash['user_id'], date_due: hash['date_due']}
+        Task.create(task_hash)
+        tasking_hash = {users_id: hash['user_id'], tasks_id: latest(:id)['id']}
+        Tasking.create(tasking_hash)
+        
     end
 end
